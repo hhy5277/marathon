@@ -8,7 +8,7 @@ import mesosphere.marathon.integration.facades.MarathonFacade._
 import mesosphere.marathon.integration.facades.{ ITDeployment, ITEnrichedTask, ITQueueItem }
 import mesosphere.marathon.integration.setup._
 import mesosphere.marathon.raml.{ App, AppHealthCheck, AppHealthCheckProtocol, AppUpdate, CommandCheck, Container, ContainerPortMapping, DockerContainer, EngineType, Network, NetworkMode, NetworkProtocol, PortDefinitions }
-import mesosphere.marathon.state.PathId
+import mesosphere.marathon.state.{ PathId, Timestamp }
 import mesosphere.marathon.state.PathId._
 import org.slf4j.LoggerFactory
 
@@ -203,7 +203,7 @@ class AppDeployIntegrationTest
       copy(
         portDefinitions = Some(PortDefinitions(31000)),
         requirePorts = Some(true),
-        healthChecks = Seq(ramlHealthCheck.copy(port = Some(31000)))
+        healthChecks = Seq(ramlHealthCheck.copy(port = Some(31000), portIndex = None))
       )
     val check = appProxyCheck(app.id.toPath, "v1", state = true)
 
@@ -392,7 +392,7 @@ class AppDeployIntegrationTest
     Then("The response should contain all the versions")
     list.code should be (200)
     list.value.versions should have size 1
-    list.value.versions.headOption should be (createResponse.value.version)
+    list.value.versions.headOption should be (createResponse.value.version.map(Timestamp(_)))
   }
 
   test("correctly version apps") {
@@ -418,7 +418,7 @@ class AppDeployIntegrationTest
     val updatedVersion = updateResponse.value.version
     val responseUpdatedVersion = marathon.appVersion(PathId(v1.id), updatedVersion)
     responseUpdatedVersion.code should be (200)
-    responseUpdatedVersion.value.disk should be (Some(updatedDisk))
+    responseUpdatedVersion.value.disk should be (updatedDisk)
   }
 
   test("kill a task of an App") {
@@ -720,6 +720,7 @@ class AppDeployIntegrationTest
     gracePeriodSeconds = 20,
     intervalSeconds = 1,
     maxConsecutiveFailures = 10,
-    portIndex = Some(0)
+    portIndex = Some(0),
+    delaySeconds = 2
   )
 }
